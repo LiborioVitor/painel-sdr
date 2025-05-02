@@ -4,3 +4,4 @@ pymysql
 pandas
 altair
 plotly
+python-dotenv
