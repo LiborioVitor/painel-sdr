@@ -1,0 +1,1 @@
+# Funções auxiliares (formatação, cores, etc)
