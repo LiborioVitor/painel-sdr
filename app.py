@@ -1,28 +1,79 @@
 import streamlit as st
 import pandas as pd
-from src.loader import carregar_dados
-import src.charts as ch
-st.set_page_config(layout='wide', page_title="Painel SDR", page_icon="📈")
-st.title("Painel SDR – Reuniões")
+from datetime import datetime, timedelta
+from streamlit_autorefresh import st_autorefresh
 
-df = carregar_dados()
+from src.loader import carregar_reunioes_mes_atual, carregar_reunioes_por_time
+from src.charts import grafico_reunioes_acumuladas, grafico_reunioes_por_agente, grafico_pizza_reunioes_por_time
 
-# Métricas simuladas (substitua por cálculo real)
-meta_dia = 30
-meta_semana = 165
-realizado_dia = df[df['data_reuniao'].dt.date == pd.Timestamp.today().date()].shape[0]
-realizado_semana = df[df['data_reuniao'] >= pd.Timestamp.today() - pd.Timedelta(days=7)].shape[0]
+# Configuração da página
+st.set_page_config(layout='wide', page_title="Painel de Reuniões", page_icon="📅")
 
-# Linha 1 – Velocímetros
-col1, col2 = st.columns(2)
-with col1:
-    ch.velocimetro_simples("Meta do Dia", realizado_dia, meta_dia)
-with col2:
-    ch.velocimetro_simples("Meta da Semana", realizado_semana, meta_semana)
+# Autoatualização a cada 30 segundos
+st_autorefresh(interval=30 * 1000, key="refresh")
 
-# Linha 2 – Linha + Barras
-col3, col4 = st.columns(2)
-with col3:
-    ch.grafico_linha_reunioes_diarias(df)
-with col4:
-    ch.grafico_barras_pre_venda(df)
+# Controle de páginas
+if "pagina_atual" not in st.session_state:
+    st.session_state.pagina_atual = 0
+st.session_state.pagina_atual = (st.session_state.pagina_atual + 1) % 2
+
+# Estilo visual customizado
+st.markdown("""
+    <style>
+        html, body, .main, .block-container, .stApp {
+            background-color: #0E0E0E !important;
+            color: #FFFFFF !important;
+        }
+        .block-container {
+            padding-top: 0.5rem;
+            padding-left: 2rem;
+            padding-right: 2rem;
+        }
+        h1 {
+            color: #F7B304 !important;
+            font-size: 2.2em !important;
+            text-align: center;
+            margin-bottom: 0.2rem !important;
+            margin-top: 0 !important;
+        }
+        h6 {
+            text-align: center;
+            color: #AAAAAA !important;
+            font-size: 1em !important;
+            margin-top: 0 !important;
+        }
+        .stMarkdown, .stText, .stPlotlyChart {
+            font-size: 1.2em !important;
+        }
+        .js-plotly-plot .plotly .modebar {
+            display: none !important;
+        }
+        #MainMenu, footer, header {
+            visibility: hidden;
+        }
+        .viewerBadge_container__1QSob {
+            display: none !important;
+        }
+    </style>
+""", unsafe_allow_html=True)
+
+# Cabeçalho
+st.markdown(f"""
+    <h1>📅 Painel de Reuniões SDR</h1>
+    <h6>Atualizado em: {(datetime.now() - timedelta(hours=3)).strftime('%d/%m/%Y %H:%M:%S')}</h6>
+""", unsafe_allow_html=True)
+
+# Página 1: Reuniões acumuladas
+if st.session_state.pagina_atual == 0:
+    df = carregar_reunioes_mes_atual()
+    fig = grafico_reunioes_acumuladas(df)
+    st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
+
+# Página 2: Por time e agente
+else:
+    df = carregar_reunioes_por_time()
+    col1, col2 = st.columns(2)
+    with col1:
+        st.plotly_chart(grafico_reunioes_por_agente(df), use_container_width=True, config={"displayModeBar": False})
+    with col2:
+        st.plotly_chart(grafico_pizza_reunioes_por_time(df), use_container_width=True, config={"displayModeBar": False})

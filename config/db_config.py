@@ -1,8 +1,8 @@
 import os
 import streamlit as st
 
-if "DB_USER" in st.secrets:
-    # Produção (Streamlit Cloud)
+# Verifica se o ambiente está em produção via Streamlit Cloud
+if st.secrets._secrets:  # Isso só existe no Cloud
     DB_CONFIG = {
         "user": st.secrets["DB_USER"],
         "password": st.secrets["DB_PASSWORD"],
@@ -10,7 +10,6 @@ if "DB_USER" in st.secrets:
         "database": st.secrets["DB_NAME"]
     }
 else:
-    # Desenvolvimento local (.env)
     from dotenv import load_dotenv
     load_dotenv()
     DB_CONFIG = {
